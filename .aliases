@@ -19,8 +19,6 @@ alias brwe=brew  #typos
 
 alias hosts='sudo $EDITOR /etc/hosts'   # yes I occasionally 127.0.0.1 twitter.com ;)
 
-alias ag='ag -f --hidden'
-
 ###
 # time to upgrade `ls`
 
@@ -54,7 +52,13 @@ alias undopush="git push -f origin HEAD^:master"
 
 # git root
 alias gr='[ ! -z `git rev-parse --show-cdup` ] && cd `git rev-parse --show-cdup || pwd`'
-alias master="git checkout main 2>/dev/null || git checkout master"
+
+
+alias gitmainormaster="git branch --format '%(refname:short)' --sort=-committerdate --list master main | head -n1"
+alias main="git checkout \$(gitmainormaster)"
+alias master="main"
+
+alias dotfiles="subl ~/code/dotfiles" # open dotfiles for viewing
 
 # Networking. IP address, dig, DNS
 alias ip="dig +short myip.opendns.com @resolver1.opendns.com"
@@ -70,6 +74,7 @@ alias free_diskspace_report="diskspace_report"
 
 # Shortcuts
 alias g="git"
+alias gi="git"
 alias v="vim"
 alias ungz="gunzip -k"
 
