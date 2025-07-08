@@ -1,56 +1,20 @@
 
-# 2022-11 comment: this whole file feels gross. 
-# also feels like https://fishshell.com/docs/current/cmds/fish_add_path.html would clean it up a lot
 
+# Read from ~/.paths  and populate PATH based on that. reversed to ensure priority goes to top of file.
+for line in (tac ~/.paths  | sed 's|#.*||' | sed 's/^[ \t]*//;s/[ \t]*$//' | string split -n "\n")
+  # skip comments
+  if test (string sub --length 1 "$line") = "#"
+      continue  
+  end
 
-# Grab my $PATHs from ~/.extra
-set -l PATH_DIRS (cat "$HOME/.extra" | grep "^PATH" | \
-    # clean up bash PATH setting pattern
-    sed "s/PATH=//" | sed "s/\\\$PATH://" | \
-    # rewrite ~/ to use {$HOME}
-    sed "s/~\//{\$HOME}\//")
+  set expanded_line (string replace '$HOME' "$HOME" (string replace '~' "$HOME" "$line"))
 
-
-set -l PA ""
-
-
-
-for entry in (string split \n $PATH_DIRS)
-    # resolve the {$HOME} substitutions
-    set -l resolved_path (eval echo $entry)
-    if test -d "$resolved_path"; # and not contains $resolved_path $PATH
-        set PA $PA "$resolved_path"
-    end
+  # Hmm.. I previously said this existence check excludes some important things but now i'm not sure.  
+  if test -d "$expanded_line" -o -L "$expanded_line"
+    # --global works like normal PATH additions in bash. but default is --universal which seems like more fun. maybe try that out
+    #  with universal i wouldnt need to do this on every shell startup. I don't know exactly when i do it, then... 
+    fish_add_path --global "$expanded_line"
+  else
+    # echo "Warning: Path '$expanded_line' does not exist or is not a directory/symlink. Skipping." >&2
+  end
 end
-
-
-set -l paths "
-# yarn binary
-$HOME/.yarn/bin
-$GOPATH/bin
-
-# yarn global modules (hack for me)
-$HOME/.config/yarn/global/node_modules/.bin
-"
-
-for entry in (string split \n $paths)
-    # resolve the {$HOME} substitutions
-    set -l resolved_path (eval echo $entry)
-    if test -d "$resolved_path";
-        set PA $PA "$resolved_path"
-    end
-end
-
-# GO
-set PA $PA "/Users/paulirish/.go/bin"
-
-# `code` binary from VS Code insiders
-set PA $PA "/Applications/Visual Studio Code - Insiders.app/Contents/Resources/app/bin"
-
-
-# Google Cloud SDK.
-if test -f "$HOME/google-cloud-sdk/path.fish.inc"
-    source "$HOME/google-cloud-sdk/path.fish.inc"
-end
-
-set --export PATH $PA

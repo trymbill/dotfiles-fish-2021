@@ -1,23 +1,44 @@
-# I've noticed this file gets called 3 times. Looks like one is from pureprompt.
+# I've noticed this file gets called multiple times. (not on mbp)
 # todo, investigate later.
 # status stack-trace
 
-# TODO: path and aliases are kinda slow to source. optimize later.
-source ~/.config/fish/path.fish
-source ~/.config/fish/aliases.fish
-source ~/.config/fish/functions.fish
-source ~/.config/fish/chromium.fish
 
-# for things not checked into git..
-if test -e "$HOME/.extra.fish";
-	source ~/.extra.fish
+# Debugging 
+# set fish_trace 1
+# fish_trace 1 outputs 3,500 lines when spawning a fresh shell.
+
+# /Users/paulirish/.homebrew/bin/fish --debug "*" # super noisy
+#    see `fish --print-debug-categories`
+# fish --debug "$(fish --print-debug-categories | grep -v "ast-construction" | sed 's| .*||' | string join ',')"
+#     ^ outputs 11,400 lines of spawning a fresh shell
+
+
+function fish_greeting
 end
 
-# THEME PURE #
-set -g async_prompt_functions _pure_prompt_git  # run this async! dope.
-set fish_function_path $HOME/.config/fish/functions/pure/functions/ $fish_function_path
-set fish_function_path $HOME/.config/fish/functions/pure/ $fish_function_path
-source $HOME/.config/fish/functions/pure/conf.d/pure.fish
+# TODO: path and aliases are kinda slow to source. optimize later. 
+function ssource --description "source most of my dotfiles, useful if making changes and iterating"
+
+    source ~/.config/fish/path.fish
+    source ~/.config/fish/aliases.fish
+    source ~/.config/fish/functions.fish
+    source ~/.config/fish/chromium.fish
+
+    # pull in all shared `export …` aka `set -gx …`
+    source ~/.exports
+
+    if test -e "$HOME/code/dotfiles/private/extras.fish";
+        source $HOME/code/dotfiles/private/extras.fish
+    end
+
+    # for things not checked into git
+    if test -e "$HOME/.extra.fish";
+        source ~/.extra.fish
+    end
+end
+
+
+ssource;
 
 # I don't need a prompt symbol for you-got-things-in-yr-stash
 set --erase pure_symbol_git_stash
@@ -58,6 +79,13 @@ set pure_begin_prompt_with_current_directory false
 set -U pure_color_success (set_color green)
 set -U pure_color_git_dirty (set_color cyan)
 
+set -U pure_color_git_unpushed_commits (set_color yellow)
+set -U pure_color_git_unpulled_commits (set_color brgreen)
+
+# prompt (lucid)
+
+set -g lucid_prompt_symbol_error_color red
+
 # Status Chars
 #set __fish_git_prompt_char_dirtystate '*'
 set __fish_git_prompt_char_upstream_equal ''
@@ -69,8 +97,6 @@ set __fish_git_prompt_color_dirtystate 'red'
 set __fish_git_prompt_color_upstream_ahead ffb90f
 set __fish_git_prompt_color_upstream_behind blue
 
-# Local prompt customization
-set -e fish_greeting
 
 
 set -g fish_pager_color_completion normal
@@ -79,9 +105,7 @@ set -g fish_pager_color_prefix cyan
 set -g fish_pager_color_progress cyan
 
 
-# pull in all shared `export …` aka `set -gx …`
-. ~/.exports
 
-# TODO debug this
-# this currently messes with newlines in my prompt. lets debug it later.
-test -e {$HOME}/.iterm2_shell_integration.fish ; and source {$HOME}/.iterm2_shell_integration.fish
+string match -q "$TERM_PROGRAM" "vscode"
+and . (code --locate-shell-integration-path fish)
+

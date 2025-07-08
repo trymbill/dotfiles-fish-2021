@@ -1,23 +1,24 @@
+# shellcheck shell=bash
+
+# PATH setup via ~/.paths
+setupPATH() {
+    # Credit to https://github.com/davidaurelio/dotfiles/blob/main/.profile this cute pattern.
+    while read -r P; do
+    P=`eval echo $P`
+    if [ -d "$P" ]; then
+        export PATH="$PATH:$P"
+    fi
+    #subread these files but strip out comments, extra whitespace, and empty lines
+    done < <(tac ~/.paths ~/.paths.local 2> /dev/null | sed 's|#.*||' | sed 's/^[ \t]*//;s/[ \t]*$//' | sed '/^$/d')
+}
+setupPATH;
 
 # Load our dotfiles like ~/.bash_prompt, etc…
-#   ~/.extra can be used for settings you don’t want to commit,
-#   Use it to configure your PATH, thus it being first in line.
-for file in ~/.{extra,bash_prompt,exports,aliases,functions}; do
+for file in ~/.{bash_prompt,exports,aliases,functions}; do
     [ -r "$file" ] && source "$file"
 done
 unset file
 
-# to help sublimelinter etc with finding my PATHS
-case $- in
-   *i*) source ~/.extra
-esac
-
-# here's LS_COLORS
-# github.com/trapd00r/LS_COLORS
-command -v gdircolors >/dev/null 2>&1 || alias gdircolors="dircolors"
-if which gdircolors > /dev/null; then
-	eval "$(gdircolors -b ~/.dircolors)"
-fi
 
 # generic colouriser
 GRC=`which grc`
@@ -39,8 +40,14 @@ export LESS_TERMCAP_so=$'\E[38;5;246m'    # begin standout-mode - info box
 export LESS_TERMCAP_ue=$'\E[0m'           # end underline
 export LESS_TERMCAP_us=$'\E[04;38;5;146m' # begin underline
 
+
+# Skip line-numbers and grid. https://github.com/sharkdp/bat/blob/e608b331425ca2ce8f8d0bd37e7f90901f91eb99/src/style.rs#L27-L61
+# In the future this can be `default,-numbers,-grid` but they haven't released in 18months so.....   
+export BAT_STYLE="changes,header-filename,header-filesize,snip,rule"
+
+
 ##
-## gotta tune that bash_history…
+## HISTORY settings... 
 ##
 
 # Enable history expansion with space
@@ -54,18 +61,30 @@ export HISTTIMEFORMAT='%F %T '
 
 # keep history up to date, across sessions, in realtime
 #  http://unix.stackexchange.com/a/48113
-export HISTCONTROL="ignoredups"       # no duplicate entries, but keep space-prefixed commands
+export HISTCONTROL="ignoredups"       # no duplicate entries, but keep space-prefixed commands. (bash-sensible uses "erasedups:ignoreboth" but i think i validated this already?)
+# here's the popularity amonngst other-peoples-dotfiles... (cmd: ag --nogroup --noheading --nofilename --hidden -o "HISTCONTROL.*" |  grep -E -o "(ignore|erase)[a-z:]*" | sort | uniq -c | sort -r)
+#      5 ignoreboth
+#      4 ignoredups
+#      2 erasedups:ignoreboth
+#      1 ignorespace:erasedups
+#      1 ignoredups:erasedups
+#      1 erasedups
+
 export HISTSIZE=100000                          # big big history (default is 500)
 export HISTFILESIZE=$HISTSIZE                   # big big history
-type shopt &> /dev/null && shopt -s histappend  # append to history, don't overwrite it
+shopt -s histappend                             # append to history, don't overwrite it
+shopt -s cmdhist                                # Save multi-line commands as one command
+
+
+# Enable incremental history search with up/down arrows (also Readline goodness)
+# Learn more about this here: http://codeinthehole.com/writing/the-most-important-command-line-tip-incremental-history-searching-with-inputrc/
+bind '"\e[A": history-search-backward'
+bind '"\e[B": history-search-forward'
 
 # Don't record some commands
 export HISTIGNORE="&:[ ]*:exit:ls:bg:fg:history:clear"
 
-# Save multi-line commands as one command
-shopt -s cmdhist
-
-# Save and reload the history after each command finishes
+# Save and reload the history after each command finishes. Also look for any conflicting prompt_command definitions!!
 export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"
 
 # ^ the only downside with this is [up] on the readline will go over all history not just this bash session.
@@ -80,6 +99,7 @@ fi;
 ##
 ## Completion…
 ##
+
 
 if [[ -n "$ZSH_VERSION" ]]; then  # quit now if in zsh
     return 1 2> /dev/null || exit 1;

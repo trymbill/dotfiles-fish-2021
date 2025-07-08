@@ -64,17 +64,13 @@ if [ "$GIT_FRIENDLY_NO_BUNDLE" != "true" ]; then
   fi
 fi
 
-# Install Node.js packages 
-narn install
+# Skip installs if devtools because weird node_modules situation
+# repoUrl=$(git config --get remote.origin.url)
+# if grep -q chromium.googlesource.com <<<$repoUrl; then
+#   gclient sync --delete_unversioned_trees  # chromium deps instead
+#   exit 0
+# fi
 
-# Install Bower components
-if [ "$GIT_FRIENDLY_NO_BOWER" != "true" ]; then
-  if which npm >/dev/null 2>&1 && [ -f bower.json ]; then
-    echo
-    echo "⚔  Installing Bower components..."
-    bower install
-  fi
-fi
 
 echo
 echo "🦄  Done"
